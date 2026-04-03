@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useCallback } from 'react';
+import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Mic, MicOff, PhoneOff, Play, User, Bot, Loader2 } from 'lucide-react';
@@ -8,12 +8,16 @@ import { ConversationHandler } from '@/lib/interview/conversation-handler';
 import { feedbackGenerator } from '@/lib/interview/feedback-generator';
 import { CallStatus } from '@/lib/interview/types';
 import type { FeedbackData } from '@/lib/interview/types';
+import { ProctoringService } from '@/lib/interview/proctor';
+import type { ProctorState, ProctoringSummary } from '@/lib/interview/proctor';
+import { ProctoringOverlay } from './ProctoringOverlay';
 
 interface InterviewAgentProps {
   userName: string;
   interviewId: string;
   questions: string[];
-  onInterviewEnd: (feedbackData: FeedbackData, conversationHistory?: { role: string; content: string }[]) => void;
+  language?: string;
+  onInterviewEnd: (feedbackData: FeedbackData, conversationHistory?: { role: string; content: string }[], proctoringSummary?: ProctoringSummary) => void;
 }
 
 interface InterviewState {
@@ -79,6 +83,7 @@ export const InterviewAgent = ({
   userName,
   interviewId,
   questions,
+  language = 'en',
   onInterviewEnd,
 }: InterviewAgentProps) => {
   const { t } = useTranslation();
@@ -88,34 +93,60 @@ export const InterviewAgent = ({
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
   const spacebarDownRef = useRef(false);
+  const proctorRef = useRef<ProctoringService | null>(null);
+  const [proctorState, setProctorState] = useState<ProctorState | null>(null);
 
-  // Initialize conversation handler
+  // Initialize conversation handler — fresh instance every mount
   useEffect(() => {
-    handlerRef.current = new ConversationHandler();
+    const handler = new ConversationHandler();
+    handlerRef.current = handler;
     return () => {
-      if (handlerRef.current) {
-        handlerRef.current.stop();
-      }
+      // Full reset: abort in-flight LLM/TTS/playback, clear history, release streams
+      handler.reset();
+      handlerRef.current = null;
       if (cameraStreamRef.current) {
         cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        cameraStreamRef.current = null;
       }
     };
   }, []);
 
-  // Request camera access
+  // Request camera access and initialize proctoring
   useEffect(() => {
-    const initCamera = async () => {
+    const initCameraAndProctor = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         cameraStreamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+
+        // Initialize proctoring service
+        const proctor = new ProctoringService();
+        proctorRef.current = proctor;
+        const loaded = await proctor.loadModels();
+        if (loaded && videoRef.current) {
+          proctor.start(
+            videoRef.current,
+            (newState) => setProctorState(newState),
+            () => {
+              // Auto-terminate on 3 strikes
+              toast.error('Interview terminated due to repeated violations.');
+              handleEndInterview();
+            },
+          );
+        }
       } catch {
         // Camera not available, fallback to avatar
       }
     };
-    initCamera();
+    initCameraAndProctor();
+
+    return () => {
+      if (proctorRef.current) {
+        proctorRef.current.stop();
+      }
+    };
   }, []);
 
   // Register event listeners
@@ -223,6 +254,7 @@ export const InterviewAgent = ({
         level: '',
         techstack: [],
         questions,
+        language,
       });
     } catch (error) {
       dispatch({ type: 'SET_CALL_STATUS', payload: CallStatus.INACTIVE });
@@ -236,28 +268,32 @@ export const InterviewAgent = ({
     if (!handlerRef.current) return;
 
     const transcript = handlerRef.current.getConversationHistory();
-    handlerRef.current.stop();
+    // Full reset: abort all in-flight LLM/TTS/audio, clear conversation history
+    handlerRef.current.reset();
+
+    // Stop proctoring and get summary
+    const procSummary = proctorRef.current?.getSummary() ?? undefined;
+    proctorRef.current?.stop();
 
     dispatch({ type: 'SET_GENERATING_FEEDBACK', payload: true });
 
     try {
       console.log('[Interview] Generating feedback from', transcript.length, 'messages');
-      const feedbackData = await feedbackGenerator.generateFeedback(transcript);
+      const feedbackData = await feedbackGenerator.generateFeedback(transcript, language);
       console.log('[Interview] Feedback generated:', feedbackData.totalScore);
-      onInterviewEnd(feedbackData, transcript);
+      onInterviewEnd(feedbackData, transcript, procSummary);
     } catch (error) {
       console.error('[Interview] Feedback generation error:', error);
       toast.error(
         error instanceof Error ? error.message : t('interview.feedbackFailed'),
       );
-      // Even on error, pass minimal feedback so the flow continues
       onInterviewEnd({
         totalScore: 'Cannot be determined',
         categoryScores: [],
         strengths: [],
         areasForImprovement: [],
         finalAssessment: 'Feedback generation failed. Please try again.',
-      }, transcript);
+      }, transcript, procSummary);
     }
   };
 
@@ -321,6 +357,8 @@ export const InterviewAgent = ({
                 {t('interview.recording')}
               </div>
             )}
+            {/* Proctoring overlay on camera feed */}
+            <ProctoringOverlay proctorState={proctorState} />
           </div>
           <span className="text-sm text-slate-400 font-medium">{userName}</span>
         </div>

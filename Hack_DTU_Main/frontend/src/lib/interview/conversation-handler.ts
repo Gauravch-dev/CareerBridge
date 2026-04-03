@@ -34,6 +34,17 @@ RESPONSE FORMAT RULES:
 - Speak exactly as you would in a real voice conversation.
 - Keep responses SHORT — under 40 words ideally.`;
 
+const LANG_PROMPT: Record<string, string> = {
+  hi: `\n\nLANGUAGE RULE: Conduct this ENTIRE interview in Hindi (Hinglish is perfectly fine). Greet in Hindi. Ask questions in Hindi. React in Hindi. Technical terms like React, API, SQL, etc. can stay in English — that is natural. Do NOT respond in English.`,
+  mr: `\n\nLANGUAGE RULE: Conduct this ENTIRE interview in Marathi. Greet in Marathi. Ask questions in Marathi. React in Marathi. Technical terms like React, API, SQL, etc. can stay in English — that is natural. Do NOT respond in English.`,
+};
+
+const VOICE_MAP: Record<string, string> = {
+  en: 'en-IN-NeerjaExpressiveNeural',
+  hi: 'hi-IN-SwaraNeural',
+  mr: 'mr-IN-AarohiNeural',
+};
+
 type EventName = 'call-start' | 'call-end' | 'message' | 'speech-start' | 'speech-end' | 'error' | 'end-request';
 
 export class ConversationHandler {
@@ -49,10 +60,13 @@ export class ConversationHandler {
   private micSource: MediaStreamAudioSourceNode | null = null;
   private pcmChunks: Float32Array[] = [];
   private isRecording = false;
+  private aborted = false;
+  private language = 'en';
 
   async start(config: InterviewData): Promise<void> {
     if (this.status !== CallStatus.INACTIVE) return;
 
+    this.aborted = false;
     this.status = CallStatus.CONNECTING;
 
     try {
@@ -72,11 +86,15 @@ export class ConversationHandler {
       // Use browser's native sample rate — forcing 16kHz causes silent recordings
       this.audioContext = new AudioContext();
 
-      // Build system prompt with questions as guide
+      // Store language for TTS voice selection and STT
+      this.language = config.language || 'en';
+
+      // Build system prompt with questions as guide + language instruction
       const questionsFormatted = config.questions
         .map((q, i) => `${i + 1}. ${q}`)
         .join('\n');
-      const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace('{{questions}}', questionsFormatted);
+      const langSuffix = LANG_PROMPT[this.language] || '';
+      const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace('{{questions}}', questionsFormatted) + langSuffix;
 
       this.conversationHistory = [
         { role: 'system', content: systemPrompt },
@@ -95,7 +113,10 @@ export class ConversationHandler {
   }
 
   stop(): void {
+    // Set abort flag first — this stops any in-flight generateAndSpeak/playback
+    this.aborted = true;
     this.isRecording = false;
+
     if (this.scriptProcessor) {
       this.scriptProcessor.disconnect();
       this.scriptProcessor = null;
@@ -119,8 +140,21 @@ export class ConversationHandler {
 
     this.isProcessing = false;
     this.pcmChunks = [];
+    this.conversationHistory = [];
     this.status = CallStatus.FINISHED;
     this.emit('call-end');
+  }
+
+  /**
+   * Full reset — clears all state so this handler can be reused for a fresh interview,
+   * or call this before discarding the instance to ensure no leaks.
+   */
+  reset(): void {
+    this.stop();
+    this.aborted = false;
+    this.language = 'en';
+    this.callbacks = {};
+    this.status = CallStatus.INACTIVE;
   }
 
   async startManualRecording(): Promise<void> {
@@ -226,11 +260,14 @@ export class ConversationHandler {
     const wavBlob = this.pcmToWav(mergedSamples, sampleRate);
     console.log(`[Interview] WAV size: ${wavBlob.size} bytes`);
 
+    if (this.aborted) return;
+
     this.isProcessing = true;
 
     try {
       console.log('[Interview] Sending WAV to STT...');
-      const transcription = await whisperSTTClient.transcribe(wavBlob);
+      const transcription = await whisperSTTClient.transcribe(wavBlob, this.language);
+      if (this.aborted) { this.isProcessing = false; return; }
       const userText = transcription.text.trim();
       console.log(`[Interview] STT result: "${userText}"`);
 
@@ -307,6 +344,10 @@ export class ConversationHandler {
     return this.status;
   }
 
+  getLanguage(): string {
+    return this.language;
+  }
+
   // ---------------------------------------------------------------------------
   // Core pipeline
   // ---------------------------------------------------------------------------
@@ -339,6 +380,8 @@ export class ConversationHandler {
    *   Total wait before first audio: ~5-10s
    */
   private async generateAndSpeak(): Promise<void> {
+    if (this.aborted) return;
+
     const messages: ChatMessage[] = this.conversationHistory.map((m) => ({
       role: m.role,
       content: m.content,
@@ -350,10 +393,13 @@ export class ConversationHandler {
     try {
       fullResponse = await ollamaClient.generateResponse(messages);
     } catch (error) {
+      if (this.aborted) return;
       console.error('LLM failed:', error);
       this.emit('error', new Error('AI interviewer failed to respond. Please try again.'));
       return;
     }
+
+    if (this.aborted) return;
 
     const cleaned = this.filterResponse(fullResponse.trim());
     if (!cleaned) return;
@@ -366,14 +412,19 @@ export class ConversationHandler {
     });
     this.emit('message', { role: 'assistant', content: cleaned });
 
+    if (this.aborted) return;
+
     // Step 2: Split into sentences and synthesize ALL in parallel
     const sentences = this.splitIntoSentences(cleaned);
     console.log(`[Interview] Synthesizing ${sentences.length} sentences:`, sentences);
 
-    // Fire all TTS requests at once — don't wait one by one
+    // Fire all TTS requests at once with the correct voice for the language
+    const voice = VOICE_MAP[this.language] || VOICE_MAP.en;
     const ttsResults = await Promise.allSettled(
-      sentences.map((sentence) => edgeTTSClient.synthesize(sentence))
+      sentences.map((sentence) => edgeTTSClient.synthesize(sentence, voice))
     );
+
+    if (this.aborted) return;
 
     const audioChunks: ArrayBuffer[] = [];
     ttsResults.forEach((result, i) => {
@@ -388,12 +439,13 @@ export class ConversationHandler {
     console.log(`[Interview] Playing ${audioChunks.length} audio chunks`);
 
     // Step 3: Play all chunks in order (sequential — can't overlap audio)
-    if (audioChunks.length > 0) {
+    if (audioChunks.length > 0 && !this.aborted) {
       this.emit('speech-start');
       for (const chunk of audioChunks) {
+        if (this.aborted) break;
         await this.playAudioChunk(chunk);
       }
-      this.emit('speech-end');
+      if (!this.aborted) this.emit('speech-end');
     }
   }
 

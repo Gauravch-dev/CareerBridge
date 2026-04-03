@@ -32,6 +32,7 @@ export interface InterviewData {
   level: string;
   techstack: string[];
   questions: string[];
+  language?: string;
 }
 
 export interface ConversationEventCallbacks {

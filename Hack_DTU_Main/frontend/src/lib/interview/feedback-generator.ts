@@ -88,9 +88,15 @@ Return ONLY a valid JSON object:
 
 CRITICAL: Return ONLY JSON. No markdown, no code fences, no extra text.`;
 
+const FEEDBACK_LANG_PROMPT: Record<string, string> = {
+  hi: `\n\nIMPORTANT LANGUAGE RULE: Write ALL text values (comments, strengths, areasForImprovement, finalAssessment) in Hindi (Hinglish is fine — mix Hindi and English naturally). Technical terms can stay in English. Keep JSON keys in English. Scores are numbers.`,
+  mr: `\n\nIMPORTANT LANGUAGE RULE: Write ALL text values (comments, strengths, areasForImprovement, finalAssessment) in Marathi. Technical terms can stay in English. Keep JSON keys in English. Scores are numbers.`,
+};
+
 class FeedbackGenerator {
   async generateFeedback(
     transcript: { role: string; content: string }[],
+    language = 'en',
   ): Promise<FeedbackData> {
     const userMessages = transcript.filter(m => m.role === 'user');
 
@@ -109,8 +115,9 @@ class FeedbackGenerator {
     console.log('[Feedback] Generating feedback from', userMessages.length, 'user messages');
 
     try {
+      const langSuffix = FEEDBACK_LANG_PROMPT[language] || '';
       const messages: ChatMessage[] = [
-        { role: 'system', content: FEEDBACK_PROMPT },
+        { role: 'system', content: FEEDBACK_PROMPT + langSuffix },
         { role: 'user', content: `Interview Transcript:\n\n${formattedTranscript}` },
       ];
 

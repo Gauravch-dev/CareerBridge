@@ -10,13 +10,18 @@ import {
   CheckCircle2,
   AlertTriangle,
   TrendingUp,
+  Shield,
+  Eye,
+  Monitor,
+  Users,
+  UserX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import type { FeedbackData } from '@/lib/interview/types';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
 
 function getScoreColor(score: number | string): string {
   if (typeof score !== 'number') return 'text-muted-foreground';
@@ -41,6 +46,7 @@ export const InterviewFeedback = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
+  const [isTerminated, setIsTerminated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +70,9 @@ export const InterviewFeedback = () => {
         const json = await res.json();
         const raw = json.data || json.feedback || json;
         setFeedback(raw);
+        if (raw.terminated || raw.proctoringSummary?.summary?.autoTerminated) {
+          setIsTerminated(true);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : t('feedback.fetchError');
         setError(message);
@@ -142,6 +151,20 @@ export const InterviewFeedback = () => {
         </Button>
       </div>
 
+      {/* Terminated Banner */}
+      {isTerminated && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-600">Interview Terminated</p>
+            <p className="text-xs text-red-500/80">
+              This interview was auto-terminated due to repeated violations.
+              These results are temporary and will not appear in your interview history.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Total Score - Circular Progress */}
       <div className="bg-card border border-border rounded-2xl p-8 flex flex-col items-center">
         <div className="relative w-36 h-36 mb-4">
@@ -217,6 +240,100 @@ export const InterviewFeedback = () => {
           ))}
         </div>
       </div>
+
+      {/* Interview Integrity Report */}
+      {(feedback as any).proctoringSummary && (
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Shield className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">Interview Integrity Report</h3>
+          </div>
+
+          {/* Integrity Score */}
+          <div className="flex items-center gap-6 mb-6">
+            <div className="relative w-20 h-20">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
+                <circle
+                  cx="60" cy="60" r="54" fill="none" strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 54}
+                  strokeDashoffset={2 * Math.PI * 54 - ((feedback as any).proctoringSummary.integrityScore / 100) * 2 * Math.PI * 54}
+                  className={
+                    (feedback as any).proctoringSummary.integrityScore >= 80 ? 'stroke-green-500' :
+                    (feedback as any).proctoringSummary.integrityScore >= 50 ? 'stroke-yellow-500' : 'stroke-red-500'
+                  }
+                  style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-lg font-bold ${getScoreColor((feedback as any).proctoringSummary.integrityScore)}`}>
+                  {(feedback as any).proctoringSummary.integrityScore}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Integrity Score</p>
+              <p className="text-xs text-muted-foreground">
+                {(feedback as any).proctoringSummary.totalViolations} violation{(feedback as any).proctoringSummary.totalViolations !== 1 ? 's' : ''} detected
+              </p>
+              {(feedback as any).proctoringSummary.summary.autoTerminated && (
+                <Badge variant="destructive" className="mt-1 text-xs">Auto-terminated</Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Violation Breakdown */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+              <Monitor className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="text-lg font-bold">{(feedback as any).proctoringSummary.summary.tabSwitches}</p>
+                <p className="text-[10px] text-muted-foreground">Tab Switches</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+              <Eye className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="text-lg font-bold">{(feedback as any).proctoringSummary.summary.lookAwayEvents}</p>
+                <p className="text-[10px] text-muted-foreground">Look Away</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="text-lg font-bold">{(feedback as any).proctoringSummary.summary.multipleFaceEvents}</p>
+                <p className="text-[10px] text-muted-foreground">Multiple Faces</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+              <UserX className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="text-lg font-bold">{(feedback as any).proctoringSummary.summary.noFaceEvents}</p>
+                <p className="text-[10px] text-muted-foreground">No Face</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Violation Timeline */}
+          {(feedback as any).proctoringSummary.violations.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium mb-3">Violation Timeline</h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {(feedback as any).proctoringSummary.violations.map((v: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 text-xs p-2 rounded-lg bg-muted/30">
+                    <span className="text-muted-foreground shrink-0 font-mono">
+                      {new Date(v.timestamp).toLocaleTimeString()}
+                    </span>
+                    <AlertTriangle className="w-3 h-3 text-yellow-500 shrink-0" />
+                    <span className="capitalize">{v.type.replace(/_/g, ' ')}</span>
+                    {v.details && <span className="text-muted-foreground">— {v.details}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Strengths and Areas for Improvement */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

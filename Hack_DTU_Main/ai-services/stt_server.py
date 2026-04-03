@@ -94,11 +94,16 @@ def transcribe():
             else:
                 transcribe_path = tmp_path
 
+            # Accept language from form data or query param; default to "en"
+            language = request.form.get("language", "en")
+            if language not in ("en", "hi", "mr", "ta", "te", "bn", "gu", "kn", "ml", "pa"):
+                language = "en"
+
             model = get_model()
             segments, info = model.transcribe(
                 transcribe_path,
                 beam_size=5,
-                language="en",
+                language=language,
                 vad_filter=False,
             )
 

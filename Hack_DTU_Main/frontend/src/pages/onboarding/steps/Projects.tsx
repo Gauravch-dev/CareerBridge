@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 export const Projects = () => {
     const { t } = useTranslation();
     const { data, updateStepData } = useOnboarding();
-    const { projects } = data;
+    const projects = data.projects || [];
 
     const addProject = () => {
         updateStepData('projects', [

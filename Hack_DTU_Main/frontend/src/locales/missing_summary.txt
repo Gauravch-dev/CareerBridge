@@ -1,0 +1,212 @@
+================================================================================
+COMPREHENSIVE TRANSLATION AUDIT REPORT
+================================================================================
+Locale Files Compared: en.json, hi.json, mr.json
+Analysis Date: 2026-04-03
+
+SUMMARY:
+- en.json: 881 keys total
+- hi.json: 839 keys (42 MISSING)
+- mr.json: 839 keys (42 MISSING)
+- Code references: 970 valid translation keys
+- Keys in code but NOT in en.json: 137 keys requiring attention
+
+================================================================================
+PART 1: 42 KEYS MISSING IN BOTH hi.json AND mr.json
+================================================================================
+
+These keys must be translated and added to hi.json and mr.json:
+
+INTERVIEW NAMESPACE (21 keys):
+1. interview.aiInterviewer: "AI Interviewer"
+2. interview.backToInterviews: "Back to Interviews"
+3. interview.connecting: "Connecting..."
+4. interview.endInterview: "End Interview"
+5. interview.errorTitle: "Failed to Load Interview"
+6. interview.failedToStart: "Failed to start interview"
+7. interview.feedbackFailed: "Failed to generate feedback"
+8. interview.feedbackSaved: "Feedback saved successfully"
+9. interview.fetchError: "Failed to fetch interview data"
+10. interview.generatingFeedback: "Generating Feedback..."
+11. interview.interviewEnded: "Interview has ended."
+12. interview.loadingInterview: "Loading interview..."
+13. interview.recording: "Recording"
+14. interview.saveFeedbackError: "Failed to save feedback"
+15. interview.spacebarHint: "Hold spacebar or hold the mic button to speak"
+16. interview.statusConnecting: "Connecting to services..."
+17. interview.statusGeneratingFeedback: "Generating feedback..."
+18. interview.statusReady: "Ready - hold mic or spacebar to speak"
+19. interview.statusRecording: "Recording..."
+20. interview.statusSpeaking: "AI is speaking..."
+21. interview.statusTranscribing: "Transcribing..."
+
+MOCKINTERVIEW NAMESPACE (12 keys):
+22. mockInterview.generate: "Generate"
+23. mockInterview.generateDesc: "Create a personalized interview based on your profile and preferences."
+24. mockInterview.generateError: "Failed to generate interview"
+25. mockInterview.generateInterview: "Generate Interview"
+26. mockInterview.generateSuccess: "Interview generated successfully!"
+27. mockInterview.generateTitle: "Generate AI Interview"
+28. mockInterview.generating: "Generating..."
+29. mockInterview.interviewType: "Interview Type"
+30. mockInterview.loadError: "Failed to load interviews"
+31. mockInterview.targetRole: "Target Role"
+32. mockInterview.targetRolePlaceholder: "e.g. Frontend Developer"
+33. mockInterview.yourProfile: "Your Profile"
+
+FEEDBACK NAMESPACE (8 keys):
+34. feedback.areasToImprove: "Areas for Improvement"
+35. feedback.categoryScores: "Category Scores"
+36. feedback.downloadPDF: "Download PDF"
+37. feedback.finalAssessment: "Final Assessment"
+38. feedback.needsWork: "Needs Improvement"
+39. feedback.outOf100: "out of 100"
+40. feedback.overallScore: "Overall Score"
+41. feedback.strengths: "Strengths"
+
+NOTE: "feedback" key is a nested object in en.json, not a simple string.
+
+================================================================================
+PART 2: 137 KEYS IN CODE BUT MISSING FROM en.json
+================================================================================
+
+These keys are referenced in the code via t('...') calls but don't exist
+in en.json. They need to be added to en.json first, then translated:
+
+about.ourLabel
+applicationDetails.notFound
+candidateProfile.candidate
+candidateProfile.downloadFailed
+candidateProfile.generatingPdf
+candidateProfile.loadFailed
+candidateProfile.pdfFailed
+candidateProfile.resumeDownloaded
+certificationsStep.details
+certificationsStep.titlePlaceholder
+companyProfile.companySizePlaceholder
+companyProfile.detailsSaved
+companyProfile.locationPlaceholder
+companyProfile.logoUploaded
+companyProfile.recommendedSize
+companyProfile.saveChanges
+companyProfile.uploadFailed
+companyProfile.websiteUrl
+educationStep.completionYear
+educationStep.completionYearPlaceholder
+educationStep.details
+employerSettings.candidateMessagesDesc
+employerSettings.companyProfile
+employerSettings.deleteAccount
+employerSettings.deleteAccountDesc
+employerSettings.deleteConfirmWarning
+employerSettings.emailNotificationsDesc
+employerSettings.goToCompanyProfile
+employerSettings.newApplicationsDesc
+employerSettings.saveChanges
+employerSettings.subscriptionPlanDesc
+employerSettings.tabAccount
+employerSettings.tabAlerts
+employerSettings.tabBilling
+employerSettings.tabCompany
+employerSettings.typeDeleteToConfirm
+employerSettings.updateFailed
+employerSettings.visitProfileEditor
+employerSettings.visitProfileEditorDesc
+experienceStep.company
+experienceStep.details
+experienceStep.role
+experienceStep.rolePlaceholder
+html2pdf.js
+jobApplication.agreeToShare
+jobApplication.brainwaveResume
+jobApplication.couldNotUpload
+jobApplication.coverLetterOptional
+jobApplication.somethingWentWrong
+jobApplication.uploadCustomResume
+jobPostingDetail.closeJobFailed
+jobPostingDetail.confirmCloseJob
+jobPostingDetail.error
+jobPostingDetail.jobNotFound
+jobPostingDetail.loadFailed
+jobPostingDetail.noApplicants
+jobPostingDetail.posted
+jobPostingDetail.resume
+jobPostingDetail.statusApplied
+jobPostingDetail.statusChangedTo
+jobPostingDetail.statusInterview
+jobPostingDetail.statusOffer
+jobPostingDetail.statusRejected
+jobPostingDetail.statusShortlisted
+jobPostingDetail.unknownCandidate
+jobPostingDetail.updateStatusFailed
+myPostings.allTypes
+myPostings.closingDateOpen
+myPostings.jobType
+myPostings.manageListings
+myPostings.myJobPostings
+myPostings.remote
+myPostings.status
+onboardingSteps.enterAge
+onboardingSteps.failedResumePdf
+onboardingSteps.failedSaveProfile
+onboardingSteps.hidePreview
+onboardingSteps.invalidEmail
+onboardingSteps.invalidGithub
+onboardingSteps.invalidLinkedin
+onboardingSteps.invalidPhone
+onboardingSteps.invalidPortfolio
+onboardingSteps.invalidYear
+onboardingSteps.mustBe18
+onboardingSteps.profilePreFilled
+onboardingSteps.redirecting
+onboardingSteps.save
+onboardingSteps.showPreview
+onboardingSteps.voiceProfileCompleted
+personalDetails.bio
+personalDetails.github
+personalDetails.languagesHint
+personalDetails.linkedin
+personalDetails.phone
+personalDetails.portfolio
+postJob.contract
+postJob.deleteDraftConfirm
+postJob.descriptionAndRequirements
+postJob.failedToLoadJob
+postJob.findPerfectCandidate
+postJob.fullTime
+postJob.internship
+postJob.jobDescriptionPlaceholder
+postJob.keyRequirementsPlaceholder
+postJob.location
+postJob.noDraftsSaved
+postJob.partTime
+postJob.skills
+postJob.titleRequired
+projectsStep.details
+projectsStep.link
+projectsStep.technologiesPlaceholder
+resumeUpload.analyzedByAI
+seekerSettings.accountDeleteFailed
+seekerSettings.accountDeleted
+seekerSettings.authSessionMissing
+seekerSettings.deleteAccountPermanently
+seekerSettings.deleteAccountWarning
+seekerSettings.googlePasswordMessage
+seekerSettings.loading
+seekerSettings.notificationPreferences
+seekerSettings.notificationPreferencesDesc
+seekerSettings.passwordUpdateFailed
+seekerSettings.passwordsDoNotMatch
+seekerSettings.preferencesSaveFailed
+seekerSettings.preferencesSaved
+seekerSettings.savePrivacySettings
+seekerSettings.tabAccount
+seekerSettings.tabNotifications
+seekerSettings.tabPrivacy
+seekerSettings.typeDeleteToConfirm
+skillsStep.addSkills
+upskill.next
+upskill.runScraperFirst
+upskill.scraperNoQuestions
+upskill.startTest
+upskill.startedAssessment

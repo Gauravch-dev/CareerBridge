@@ -1,13 +1,14 @@
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export const SERVICES_CONFIG = {
   EDGE_TTS: {
-    URL: 'http://localhost:5100',
+    URL: import.meta.env.VITE_EDGE_TTS_URL || 'http://localhost:5100',
   },
   WHISPER_STT: {
-    URL: 'http://localhost:5200',
+    URL: import.meta.env.VITE_WHISPER_STT_URL || 'http://localhost:5200',
   },
   OLLAMA: {
-    // Goes through Express backend proxy to avoid CORS
-    URL: 'http://localhost:5000/api/ollama-proxy',
+    URL: `${API_URL}/api/ollama-proxy`,
     MODEL: 'gemma3:4b',
   },
 } as const;

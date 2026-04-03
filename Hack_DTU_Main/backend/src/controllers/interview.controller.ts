@@ -17,11 +17,14 @@ export const generateInterview = async (req: Request, res: Response) => {
             return sendError(res, 400, 'Profile data is required');
         }
 
-        const { skills = [], experience = [], education = [], bio = '', targetRole = '' } = profileData;
+        const { skills = [], experience = [], education = [], bio = '', targetRole = '', language = 'en' } = profileData;
 
         if (!targetRole) {
             return sendError(res, 400, 'Target role is required');
         }
+
+        const LANG_NAMES: Record<string, string> = { en: 'English', hi: 'Hindi (Hinglish is fine)', mr: 'Marathi' };
+        const langName = LANG_NAMES[language] || 'English';
 
         // Determine interview type and level based on experience
         const type = 'Mixed';
@@ -32,6 +35,10 @@ export const generateInterview = async (req: Request, res: Response) => {
                 : 'Junior';
 
         const questionCount = 10;
+
+        const langInstruction = language !== 'en'
+            ? `\n\nIMPORTANT: Generate ALL questions in ${langName}. Technical terms (React, API, SQL, etc.) can stay in English, but the question text must be in ${langName}.`
+            : '';
 
         const prompt = `You are an expert interview coach. Generate ${questionCount} interview questions for a candidate with this profile:
 
@@ -48,7 +55,7 @@ Generate questions that:
 2. Explore their past experience with behavioral questions
 3. Include at least 2 role-specific technical questions
 4. Start with an icebreaker and end with "Do you have any questions?"
-
+${langInstruction}
 Return ONLY a JSON array of question strings, no other text.`;
 
         const ollamaRes = await axios.post(`${OLLAMA_URL}/api/chat`, {
@@ -85,6 +92,7 @@ Return ONLY a JSON array of question strings, no other text.`;
             questions,
             userId: userId.toString(),
             targetRole,
+            language: language || 'en',
         });
 
         return sendCreated(res, {
@@ -148,6 +156,8 @@ export const saveFeedback = async (req: Request, res: Response) => {
             areasForImprovement,
             finalAssessment,
             conversationHistory,
+            proctoringSummary,
+            terminated,
         } = req.body;
 
         if (!interviewId) {
@@ -174,6 +184,8 @@ export const saveFeedback = async (req: Request, res: Response) => {
             existingFeedback.areasForImprovement = areasForImprovement;
             existingFeedback.finalAssessment = finalAssessment;
             existingFeedback.conversationHistory = conversationHistory;
+            if (proctoringSummary) (existingFeedback as any).proctoringSummary = proctoringSummary;
+            if (terminated != null) (existingFeedback as any).terminated = terminated;
             await existingFeedback.save();
 
             return sendSuccess(res, existingFeedback, 'Feedback updated successfully');
@@ -189,6 +201,8 @@ export const saveFeedback = async (req: Request, res: Response) => {
             areasForImprovement,
             finalAssessment,
             conversationHistory,
+            ...(proctoringSummary ? { proctoringSummary } : {}),
+            ...(terminated ? { terminated: true } : {}),
         });
 
         return sendCreated(res, feedback, 'Feedback saved successfully');
@@ -224,7 +238,7 @@ export const getMyFeedback = async (req: Request, res: Response) => {
         const userId = req.user?._id;
         if (!userId) return sendError(res, 401, 'Unauthorized');
 
-        const feedbacks = await InterviewFeedback.find({ userId: userId.toString() }).sort({ createdAt: -1 });
+        const feedbacks = await InterviewFeedback.find({ userId: userId.toString(), terminated: { $ne: true } }).sort({ createdAt: -1 });
 
         return sendSuccess(res, feedbacks, 'Feedback fetched successfully');
     } catch (error) {

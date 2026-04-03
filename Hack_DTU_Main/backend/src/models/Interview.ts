@@ -8,6 +8,7 @@ export interface IInterview extends Document {
     questions: string[];
     userId: string;
     targetRole: string;
+    language: string;
     createdAt: Date;
 }
 
@@ -20,6 +21,7 @@ const InterviewSchema: Schema = new Schema(
         questions: [{ type: String }],
         userId: { type: String, required: true, index: true },
         targetRole: { type: String, required: true },
+        language: { type: String, default: 'en', enum: ['en', 'hi', 'mr'] },
     },
     {
         timestamps: true,

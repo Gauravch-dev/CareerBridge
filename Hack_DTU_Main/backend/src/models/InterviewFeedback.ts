@@ -11,6 +11,25 @@ export interface IConversationEntry {
     content: string;
 }
 
+export interface IProctoringSummary {
+    integrityScore: number;
+    totalViolations: number;
+    violations: {
+        timestamp: string;
+        type: string;
+        duration: number;
+        confidence: number;
+        details?: string;
+    }[];
+    summary: {
+        tabSwitches: number;
+        lookAwayEvents: number;
+        multipleFaceEvents: number;
+        noFaceEvents: number;
+        autoTerminated: boolean;
+    };
+}
+
 export interface IInterviewFeedback extends Document {
     interviewId: string;
     userId: string;
@@ -20,6 +39,8 @@ export interface IInterviewFeedback extends Document {
     areasForImprovement: string[];
     finalAssessment: string;
     conversationHistory: IConversationEntry[];
+    proctoringSummary?: IProctoringSummary;
+    terminated?: boolean;
     createdAt: Date;
 }
 
@@ -44,6 +65,29 @@ const InterviewFeedbackSchema: Schema = new Schema(
                 content: { type: String, required: true },
             },
         ],
+        terminated: { type: Boolean, default: false },
+        proctoringSummary: {
+            type: {
+                integrityScore: { type: Number, default: 100 },
+                totalViolations: { type: Number, default: 0 },
+                violations: [{
+                    timestamp: String,
+                    type: { type: String, enum: ['no_face', 'multiple_faces', 'looking_away', 'tab_switch'] },
+                    duration: Number,
+                    confidence: Number,
+                    details: String,
+                }],
+                summary: {
+                    tabSwitches: { type: Number, default: 0 },
+                    lookAwayEvents: { type: Number, default: 0 },
+                    multipleFaceEvents: { type: Number, default: 0 },
+                    noFaceEvents: { type: Number, default: 0 },
+                    autoTerminated: { type: Boolean, default: false },
+                },
+            },
+            required: false,
+            default: undefined,
+        },
     },
     {
         timestamps: true,

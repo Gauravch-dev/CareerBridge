@@ -8,12 +8,34 @@ import { AlertCircle, BookOpen, ArrowRight, ArrowLeft, Loader2, Award, Zap, Spar
 import { analyzeSkillGap } from '@/lib/auth-api';
 import { useToast } from "@/hooks/use-toast";
 
+interface CourseRecommendation {
+  title: string;
+  description: string;
+  link: string;
+  provider?: string;
+  duration?: string;
+  level?: string;
+  institution?: string;
+  isFree?: boolean;
+  matchedSkills?: string[];
+  reason?: string;
+  matchScore?: number;
+}
+
 interface SkillGapResult {
   score: number;
   analysis: string;
   missingSkills: { name: string; category: string; importance: string }[];
-  learningPath: { title: string; description: string; link: string }[];
+  learningPath: CourseRecommendation[];
 }
+
+const PROVIDER_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  NPTEL: { bg: 'bg-blue-500/10', text: 'text-blue-600', label: 'NPTEL' },
+  SWAYAM: { bg: 'bg-green-500/10', text: 'text-green-600', label: 'SWAYAM' },
+  SkillIndia: { bg: 'bg-orange-500/10', text: 'text-orange-600', label: 'Skill India' },
+  eSkillIndia: { bg: 'bg-purple-500/10', text: 'text-purple-600', label: 'eSkill India' },
+  Udemy: { bg: 'bg-violet-500/10', text: 'text-violet-600', label: 'Udemy' },
+};
 
 export const SkillGapAnalysis = () => {
   const { t } = useTranslation();
@@ -295,23 +317,66 @@ export const SkillGapAnalysis = () => {
                  </div>
 
                  <div className="grid grid-cols-1 gap-4">
-                    {result.learningPath.map((item, idx) => (
+                    {result.learningPath.map((item, idx) => {
+                       const providerStyle = item.provider ? PROVIDER_STYLES[item.provider] : null;
+                       return (
                        <a key={idx} href={item.link} target="_blank" rel="noopener noreferrer" className="group block">
                           <div className="flex flex-col sm:flex-row gap-6 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all">
-                             <div className="w-full sm:w-48 h-32 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden relative">
-                                <div className="absolute inset-0 flex items-center justify-center text-slate-300 dark:text-slate-700">
-                                   <PlayCircle className="w-10 h-10" />
-                                </div>
-                                {/* Placeholder for thumbnail if available */}
+                             <div className="w-full sm:w-48 h-32 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden relative flex flex-col items-center justify-center gap-2">
+                                {providerStyle ? (
+                                   <>
+                                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${providerStyle.bg} ${providerStyle.text}`}>
+                                         {providerStyle.label}
+                                      </div>
+                                      {item.institution && (
+                                         <span className="text-[10px] text-muted-foreground text-center px-2">{item.institution}</span>
+                                      )}
+                                      {item.isFree ? (
+                                         <Badge variant="secondary" className="text-[10px] bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">FREE</Badge>
+                                      ) : item.provider === 'Udemy' ? (
+                                         <Badge variant="secondary" className="text-[10px] bg-violet-50 text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">PAID</Badge>
+                                      ) : null}
+                                   </>
+                                ) : (
+                                   <PlayCircle className="w-10 h-10 text-slate-300 dark:text-slate-700" />
+                                )}
+                                {item.matchScore != null && (
+                                   <div className={`absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                      item.matchScore >= 70 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' :
+                                      item.matchScore >= 40 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400' :
+                                      'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                   }`}>
+                                      {item.matchScore}% match
+                                   </div>
+                                )}
                                 <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                              </div>
                              <div className="flex-1 flex flex-col justify-between py-1">
                                 <div>
                                    <div className="flex justify-between items-start">
                                       <h4 className="text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">{item.title}</h4>
-                                      <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+                                      <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
                                    </div>
+                                   {item.reason && (
+                                      <div className="flex items-start gap-1.5 mt-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+                                         <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                                         <p className="text-xs text-primary/80 leading-relaxed">{item.reason}</p>
+                                      </div>
+                                   )}
                                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{item.description}</p>
+                                   <div className="flex flex-wrap items-center gap-2 mt-3">
+                                      {item.duration && (
+                                         <span className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">{item.duration}</span>
+                                      )}
+                                      {item.level && (
+                                         <span className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">{item.level}</span>
+                                      )}
+                                      {item.matchedSkills && item.matchedSkills.length > 0 && (
+                                         item.matchedSkills.map((sk, i) => (
+                                            <Badge key={i} className="text-[10px] capitalize bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-900/30">Gap: {sk}</Badge>
+                                         ))
+                                      )}
+                                   </div>
                                 </div>
                                 <div className="mt-4 flex items-center gap-2 text-sm font-medium text-primary">
                                    {t('skillGap.startLearning')} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -319,8 +384,34 @@ export const SkillGapAnalysis = () => {
                              </div>
                           </div>
                        </a>
-                    ))}
+                       );
+                    })}
                  </div>
+
+                 {/* Show skills that have no course recommendation */}
+                 {(() => {
+                    const coveredSkills = new Set(
+                       (result.learningPath || []).flatMap((c) => c.matchedSkills || []).map((s) => s.toLowerCase())
+                    );
+                    const uncoveredSkills = (result.missingSkills || []).filter(
+                       (s) => !coveredSkills.has(s.name.toLowerCase())
+                    );
+                    if (uncoveredSkills.length === 0) return null;
+                    return (
+                       <div className="mt-6 p-4 rounded-xl bg-muted/50 border border-border">
+                          <p className="text-sm font-medium mb-2">No matching government course found for:</p>
+                          <div className="flex flex-wrap gap-2">
+                             {uncoveredSkills.map((s, i) => (
+                                <Badge key={i} variant="outline" className="text-xs">{s.name}</Badge>
+                             ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                             These skills are not yet covered in the NPTEL/SWAYAM/Skill India catalog.
+                             Try searching for them on skillindiadigital.gov.in or swayam.gov.in directly.
+                          </p>
+                       </div>
+                    );
+                 })()}
               </div>
            )}
         </div>

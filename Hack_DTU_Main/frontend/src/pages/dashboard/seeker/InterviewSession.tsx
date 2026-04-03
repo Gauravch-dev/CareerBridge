@@ -6,8 +6,9 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InterviewAgent } from '@/components/interview/InterviewAgent';
 import type { FeedbackData, InterviewData } from '@/lib/interview/types';
+import type { ProctoringSummary } from '@/lib/interview/proctor';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
 
 export const InterviewSession = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +51,9 @@ export const InterviewSession = () => {
     fetchInterview();
   }, [id, authToken, t]);
 
-  const handleInterviewEnd = async (feedbackData: FeedbackData, conversationHistory?: { role: string; content: string }[]) => {
+  const handleInterviewEnd = async (feedbackData: FeedbackData, conversationHistory?: { role: string; content: string }[], proctoringSummary?: ProctoringSummary) => {
+    const wasTerminated = proctoringSummary?.summary?.autoTerminated === true;
+
     try {
       const res = await fetch(`${API_BASE}/interview/feedback`, {
         method: 'POST',
@@ -60,12 +63,16 @@ export const InterviewSession = () => {
         },
         body: JSON.stringify({
           interviewId: id,
-          totalScore: feedbackData.totalScore,
+          totalScore: wasTerminated ? 0 : feedbackData.totalScore,
           categoryScores: feedbackData.categoryScores,
           strengths: feedbackData.strengths,
           areasForImprovement: feedbackData.areasForImprovement,
-          finalAssessment: feedbackData.finalAssessment,
+          finalAssessment: wasTerminated
+            ? 'Interview was auto-terminated due to repeated proctoring violations.'
+            : feedbackData.finalAssessment,
           conversationHistory: conversationHistory || [],
+          proctoringSummary: proctoringSummary || null,
+          terminated: wasTerminated,
         }),
       });
 
@@ -79,7 +86,6 @@ export const InterviewSession = () => {
     } catch (err) {
       console.error('[Feedback] Save error:', err);
       toast.error(err instanceof Error ? err.message : t('interview.saveFeedbackError'));
-      // Still navigate to feedback page — the feedback was generated even if save failed
       navigate(`/dashboard/interview/${id}/feedback`);
     }
   };
@@ -120,6 +126,7 @@ export const InterviewSession = () => {
       userName={userName}
       interviewId={interview.id}
       questions={interview.questions}
+      language={interview.language || 'en'}
       onInterviewEnd={handleInterviewEnd}
     />
   );

@@ -13,13 +13,14 @@ class WhisperSTTClient {
    * Transcribe an audio blob to text using Whisper.
    * Sends the audio as multipart form data.
    */
-  async transcribe(audioBlob: Blob): Promise<TranscriptionResult> {
+  async transcribe(audioBlob: Blob, language = 'en'): Promise<TranscriptionResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
 
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('language', language);
 
       const response = await fetch(`${URL}/transcribe`, {
         method: 'POST',

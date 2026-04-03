@@ -13,6 +13,7 @@ import {
   Code2,
   MessageSquare,
   Shuffle,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
 
 interface Interview {
   id: string;
@@ -45,9 +46,16 @@ interface Interview {
   level: string;
   techstack: string[];
   questions: string[];
+  language?: string;
   createdAt: string;
   coverImage?: string;
 }
+
+const LANG_OPTIONS = [
+  { value: 'en', label: 'English', flag: 'EN' },
+  { value: 'hi', label: 'हिंदी (Hindi)', flag: 'HI' },
+  { value: 'mr', label: 'मराठी (Marathi)', flag: 'MR' },
+];
 
 interface UserProfile {
   personalInfo?: { bio?: string; fullName?: string };
@@ -89,6 +97,7 @@ export const MockInterview = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [interviewType, setInterviewType] = useState('Mixed');
   const [targetRole, setTargetRole] = useState('');
+  const [interviewLang, setInterviewLang] = useState('en');
 
   const authToken = localStorage.getItem('authToken');
 
@@ -133,7 +142,7 @@ export const MockInterview = () => {
       : interviews.filter((i) => i.type === filterType);
 
   const handleStartInterview = (interviewId: string) => {
-    navigate(`/dashboard/interview/${interviewId}`);
+    navigate(`/dashboard/interview/${interviewId}/ready`);
   };
 
   const handleOpenGenerate = async () => {
@@ -180,6 +189,7 @@ export const MockInterview = () => {
             education: profile?.education || [],
             bio: profile?.personalInfo?.bio || '',
             type: interviewType,
+            language: interviewLang,
           },
         }),
       });
@@ -345,6 +355,11 @@ export const MockInterview = () => {
                     >
                       {interview.type}
                     </Badge>
+                    {interview.language && interview.language !== 'en' && (
+                      <Badge variant="outline" className="text-xs">
+                        {interview.language === 'hi' ? 'हिंदी' : interview.language === 'mr' ? 'मराठी' : interview.language.toUpperCase()}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -476,6 +491,34 @@ export const MockInterview = () => {
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value)}
                 />
+              </div>
+
+              {/* Language selection */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Interview Language
+                </Label>
+                <Select value={interviewLang} onValueChange={setInterviewLang}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANG_OPTIONS.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                            {lang.flag}
+                          </span>
+                          {lang.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Questions, interview, and feedback will be in this language
+                </p>
               </div>
             </div>
           )}
