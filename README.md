@@ -31,19 +31,19 @@ Instead of traditional keyword matching, the platform understands the meaning of
 ## Screenshots
 
 ### Home Page
-![Home Page](images/homepage.png)
+![Home Page](Hack_DTU_Main/images/homepage.png)
 
 ### Login Page
-![Login Page](images/login.png)
+![Login Page](Hack_DTU_Main/images/login.png)
 
 ### Mock Test Page
-![Mock Test](images/mocktest.png)
+![Mock Test](Hack_DTU_Main/images/mocktest.png)
 
 ### AI Mock Interview
-![Mock Interview](images/interview.png)
+![Mock Interview](Hack_DTU_Main/images/interview.png)
 
 ### Skill Gap Analysis
-![Skill Gap](images/skillGapAnalysis.png)
+![Skill Gap](Hack_DTU_Main/images/skillGapAnalysis.png)
 
 ---
 
