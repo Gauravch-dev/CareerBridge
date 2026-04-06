@@ -50,7 +50,6 @@ Instead of traditional keyword matching, the platform understands the meaning of
 * TypeScript
 * Tailwind CSS
 * React Router
-* TanStack Query
 
 ### Backend
 
@@ -161,12 +160,11 @@ Distributed under the MIT License.
 
 ---
 
-## Contact
+## Contributors
 
-Gaurav Choithramani
-
-Email: your email
-LinkedIn: your linkedin link
-
-Project Link:
-https://github.com/your-username/yuvasetu
+| Joy Banerjee |
+| Shubham Kumar |
+| Atharva Chavan |
+| Arjun Verma |
+| Anjan Thakur |
+| Gaurav Choithramani |
